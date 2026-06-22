@@ -381,11 +381,14 @@
         }
         .about-img-wrap .deco-grid { display: none; }
         .about-img-wrap .center-icon { display: none; }
-        .about-img-wrap img, .about-img-wrap picture {
+        .about-img-wrap img {
             width: 100%; height: 100%;
             object-fit: cover; display: block;
         }
-        .about-img-wrap picture { display: flex; }
+        .about-img-wrap picture {
+            display: block;
+            width: 100%; height: 100%;
+        }
         .about-img-wrap .logo-watermark {
             position: absolute; bottom: 16px; right: 16px;
             background: rgba(255,255,255,.85);
