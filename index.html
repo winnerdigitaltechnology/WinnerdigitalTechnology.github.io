@@ -556,6 +556,18 @@
             box-shadow: var(--shadow-blue);
         }
         .btn-submit:hover { opacity: .92; transform: translateY(-1px); }
+        .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+        /* Toast 通知 */
+        .toast {
+            position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-80px);
+            padding: 14px 28px; border-radius: 10px; font-size: 15px; font-weight: 500;
+            z-index: 9999; opacity: 0; transition: all .4s cubic-bezier(.4,0,.2,1);
+            backdrop-filter: blur(10px); white-space: nowrap;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.success { background: rgba(22,163,74,.92); color: #fff; }
+        .toast.error { background: rgba(220,38,38,.92); color: #fff; }
 
         /* ============ CTA 横幅 ============ */
         .cta-banner {
@@ -1096,24 +1108,24 @@
                     </div>
                 </div>
                 <div class="contact-form reveal">
-                    <form onsubmit="event.preventDefault(); alert('感谢您的咨询，我们将尽快与您联系！');">
+                    <form id="consultForm">
                         <div class="form-row">
                             <div class="form-group">
                                 <label>您的姓名</label>
-                                <input type="text" class="form-input" placeholder="请输入姓名">
+                                <input type="text" name="name" class="form-input" placeholder="请输入姓名" required>
                             </div>
                             <div class="form-group">
                                 <label>联系电话</label>
-                                <input type="tel" class="form-input" placeholder="请输入电话">
+                                <input type="tel" name="phone" class="form-input" placeholder="请输入电话" required>
                             </div>
                         </div>
                         <div class="form-group">
                             <label>公司名称</label>
-                            <input type="text" class="form-input" placeholder="请输入公司名称">
+                            <input type="text" name="company" class="form-input" placeholder="请输入公司名称">
                         </div>
                         <div class="form-group">
                             <label>感兴趣的业务</label>
-                            <select class="form-select">
+                            <select name="service" class="form-select">
                                 <option value="">请选择业务方向</option>
                                 <option>人工智能应用开发</option>
                                 <option>物联网技术服务</option>
@@ -1125,9 +1137,9 @@
                         </div>
                         <div class="form-group">
                             <label>需求描述</label>
-                            <textarea class="form-textarea" placeholder="请简要描述您的需求..."></textarea>
+                            <textarea name="message" class="form-textarea" placeholder="请简要描述您的需求..."></textarea>
                         </div>
-                        <button type="submit" class="btn-submit">提交咨询</button>
+                        <button type="submit" class="btn-submit" id="submitBtn">提交咨询</button>
                     </form>
                 </div>
             </div>
@@ -1183,9 +1195,64 @@
 
     <!-- 回到顶部 -->
     <button class="back-to-top" id="backToTop">&#8593;</button>
+    <div class="toast" id="toast"></div>
 
     <!-- ========== 脚本 ========== -->
     <script>
+        // ===== Server酱推送配置 =====
+        const SCT_SENDKEY = 'SCT368450T9MC31LqXmTNXVtD5WiQB9Zi7';
+
+        // ===== Toast 通知 =====
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast ' + type;
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
+
+        // ===== 表单提交 → Server酱 =====
+        document.getElementById('consultForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const name = form.name.value.trim();
+            const phone = form.phone.value.trim();
+            if (!name || !phone) { showToast('请填写姓名和电话', 'error'); return; }
+
+            const company = form.company.value.trim() || '未填写';
+            const service = form.service.value || '未选择';
+            const message = form.message.value.trim() || '未填写';
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = '提交中...';
+
+            const title = '新客户咨询 - ' + name;
+            const desp = `**姓名**: ${name}\n**电话**: ${phone}\n**公司**: ${company}\n**业务方向**: ${service}\n**需求描述**: ${message}`;
+
+            fetch('https://sctapi.ftqq.com/' + SCT_SENDKEY + '.send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: title, desp: desp })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === 0) {
+                    showToast('提交成功，我们将尽快联系您！', 'success');
+                    form.reset();
+                } else {
+                    showToast('提交失败，请稍后重试', 'error');
+                }
+            })
+            .catch(() => {
+                showToast('网络异常，请稍后重试', 'error');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = '提交咨询';
+            });
+        });
+
         // 导航栏滚动
         const navbar = document.getElementById('navbar');
         const backToTop = document.getElementById('backToTop');
